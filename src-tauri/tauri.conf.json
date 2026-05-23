@@ -14,7 +14,7 @@
       {
         "title": "Lyric Player",
         "width": 340,
-        "height": 520,
+        "height": 300,
         "minWidth": 280,
         "minHeight": 300,
         "resizable": true,
