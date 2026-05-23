@@ -17,12 +17,17 @@
   let activeIdx = $derived($activeLineIndex);
   let state = $derived($playerState);
 
-  const LYRIC_OFFSET_MS = 0;
-
   async function poll() {
     const playback = await fetchPlaybackState();
     if (playback) {
-      lastKnownPosition = playback.progressMs;
+      const estimate = lastKnownPosition + (performance.now() - lastPollTime);
+      const drift = Math.abs(playback.progressMs - estimate);
+
+      // Only jump to server position on a real seek (> 2s diff).
+      // Otherwise keep our smooth running estimate — the server value
+      // is stale by however long the request took, and naively applying
+      // it causes the one-frame flicker back to the previous lyric line.
+      lastKnownPosition = drift > 2000 ? playback.progressMs : estimate;
       lastPollTime = performance.now();
 
       if (playback.id !== lastTrackId) {
@@ -48,7 +53,7 @@
   function syncLoop() {
     const ly = get(lyrics);
     if (ly && ly !== 'not-found' && ly.lines) {
-      const position = lastKnownPosition + (performance.now() - lastPollTime) - LYRIC_OFFSET_MS;
+      const position = lastKnownPosition + (performance.now() - lastPollTime);
       const idx = getActiveLine(ly.lines, position);
       if (idx !== get(activeLineIndex)) activeLineIndex.set(idx);
     }
